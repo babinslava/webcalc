@@ -23,4 +23,11 @@ public class CalcController {
     public Result subtract(@PathVariable("a") float operandA, @PathVariable("b") float operandB, @PathVariable("c") float operandC){
         return new Result(operandA-operandB-operandC);
     }
+
+    @Cacheable(value="calc",
+            key="new org.springframework.cache.interceptor.SimpleKey( #root.methodName, #operandA, #operandB, #operandC  )")
+    @RequestMapping(value = "/multiply/{a}/{b}/{c:.+}")
+    public Result multiply(@PathVariable("a") float operandA, @PathVariable("b") float operandB, @PathVariable("c") float operandC){
+        return new Result(operandA*operandB*operandC);
+    }
 }

@@ -63,6 +63,16 @@ public class WebCalculatorApplicationTests {
 	}
 
 	@Test
+	public void multiplyMethodShouldMultiplyValues() {
+		String methodName="multiply";
+		for (int i = 0; i < 20; i++) {
+			float[] operands = getRandomOperands();
+			float result = operands[0] * operands[1] * operands[2];
+			callCalcMethodAndCheckResult(methodName, operands, result);
+		}
+	}
+
+	@Test
 	public void addMethodShouldUseCache() {
 		String methodName="add";
 		float [] operands = getRandomOperands();
@@ -81,6 +91,15 @@ public class WebCalculatorApplicationTests {
 	}
 
 	@Test
+	public void multiplyMethodShouldUseCache() {
+		String methodName="multiply";
+		float [] operands = getRandomOperands();
+		float result = operands[0]*operands[1]*operands[2];
+		callCalcMethod(methodName,operands);
+		checkResultInCache(new SimpleKey(methodName,operands[0],operands[1],operands[2]),result);
+	}
+
+	@Test
 	public void shouldUseDifferentCacheKeysOnSameParams() {
 		float [] operands = {2f,0.4f,-1.6f};
 		String methodName="add";
@@ -89,6 +108,9 @@ public class WebCalculatorApplicationTests {
 		methodName="subtract";
 		result = operands[0]-operands[1]-operands[2];
 		callCalcMethodAndCheckResult(methodName,operands,result);
+		methodName="multiply";
+		result = operands[0] * operands[1] * operands[2];
+		callCalcMethodAndCheckResult(methodName, operands, result);
 	}
 
 
