@@ -6,17 +6,17 @@ import java.io.Serializable;
  * Created by vbabin on 11.11.2016.
  */
 public class Result implements Serializable {
-    private double result;
+    private float result;
 
-    public Result(double result) {
+    public Result(float result) {
         this.result = result;
     }
 
-    public double getResult() {
+    public float getResult() {
         return result;
     }
 
-    public void setResult(double result) {
+    public void setResult(float result) {
         this.result = result;
     }
 }

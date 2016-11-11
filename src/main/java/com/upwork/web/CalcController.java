@@ -11,7 +11,7 @@ public class CalcController {
 
     @Cacheable("calc")
     @RequestMapping(value = "/add/{a}/{b}/{c:.+}")
-    public Result add(@PathVariable("a") double operandA, @PathVariable("b") double operandB, @PathVariable("c") double operandC){
+    public Result add(@PathVariable("a") float operandA, @PathVariable("b") float operandB, @PathVariable("c") float operandC){
         return new Result(operandA+operandB+operandC);
     }
 }
