@@ -1,9 +1,11 @@
 package com.upwork.dto;
 
+import java.io.Serializable;
+
 /**
  * Created by vbabin on 11.11.2016.
  */
-public class Result {
+public class Result implements Serializable {
     private double result;
 
     public Result(double result) {
