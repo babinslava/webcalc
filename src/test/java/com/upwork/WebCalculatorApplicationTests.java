@@ -17,6 +17,8 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.interceptor.SimpleKey;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 import static com.jayway.restassured.RestAssured.given;
 import static com.jayway.restassured.http.ContentType.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -42,49 +44,53 @@ public class WebCalculatorApplicationTests {
 
 	@Test
 	public void addMethodShouldAddValues() {
-		float a,b,c;
-		a=1.2f;
-		b=2.3f;
-		c=3.1f;
-
-		callCalcMethodAndCheckResult("add",a,b,c,a+b+c);
+		String methodName="add";
+		for (int i = 0; i < 20; i++) {
+			float [] operands = getRandomOperands();
+			float result = operands[0]+operands[1]+operands[2];
+			callCalcMethodAndCheckResult(methodName,operands,result);
+		}
 	}
 
 	@Test
 	public void subtractMethodShouldSubtractValues() {
-		float a,b,c;
-		a=1.2f;
-		b=2.3f;
-		c=3.1f;
-
-		callCalcMethodAndCheckResult("subtract",a,b,c,a-b-c);
+		String methodName="subtract";
+		for (int i = 0; i < 20; i++) {
+			float[] operands = getRandomOperands();
+			float result = operands[0] - operands[1] - operands[2];
+			callCalcMethodAndCheckResult(methodName, operands, result);
+		}
 	}
 
 	@Test
 	public void addMethodShouldUseCache() {
-		float a,b,c;
-		a=0f;
-		b=0.2f;
-		c=-3.1f;
-
 		String methodName="add";
-		float result = a+b+c;
-		callCalcMethod(methodName,a,b,c);
-		checkResultInCache(new SimpleKey(methodName,a,b,c),result);
+		float [] operands = getRandomOperands();
+		float result = operands[0]+operands[1]+operands[2];
+		callCalcMethod(methodName,operands);
+		checkResultInCache(new SimpleKey(methodName,operands[0],operands[1],operands[2]),result);
 	}
 
 	@Test
 	public void subtractMethodShouldUseCache() {
-		float a,b,c;
-		a=2f;
-		b=0.4f;
-		c=-1.6f;
-
 		String methodName="subtract";
-		float result = a-b-c;
-		callCalcMethod(methodName,a,b,c);
-		checkResultInCache(new SimpleKey(methodName,a,b,c),result);
+		float [] operands = getRandomOperands();
+		float result = operands[0]-operands[1]-operands[2];
+		callCalcMethod(methodName,operands);
+		checkResultInCache(new SimpleKey(methodName,operands[0],operands[1],operands[2]),result);
 	}
+
+	@Test
+	public void shouldUseDifferentCacheKeysOnSameParams() {
+		float [] operands = {2f,0.4f,-1.6f};
+		String methodName="add";
+		float result = operands[0]+operands[1]+operands[2];
+		callCalcMethodAndCheckResult(methodName,operands,result);
+		methodName="subtract";
+		result = operands[0]-operands[1]-operands[2];
+		callCalcMethodAndCheckResult(methodName,operands,result);
+	}
+
 
 	private void checkResultInCache(SimpleKey cacheKey, float result){
 		Ehcache cache = (Ehcache) cacheManager.getCache("calc").getNativeCache();
@@ -93,28 +99,37 @@ public class WebCalculatorApplicationTests {
 		assertThat("Should be the right result",((Result) cachedResult.getObjectValue()).getResult(),Matchers.equalTo(result));
 	}
 
-	private void callCalcMethod(String methodName, float operandA, float operandB, float operandC){
+	private void callCalcMethod(String methodName, float [] operands){
 		given().
-			pathParam("a",operandA).
-			pathParam("b",operandB).
-			pathParam("c",operandC).
+			pathParam("a",operands[0]).
+			pathParam("b",operands[1]).
+			pathParam("c",operands[2]).
 			contentType(JSON).
 		when().
 			get("/"+methodName+"/{a}/{b}/{c}").
 		then().
 			assertThat().statusCode(200);
 	}
-	private void callCalcMethodAndCheckResult(String methodName, float operandA, float operandB, float operandC, float result){
+
+	private void callCalcMethodAndCheckResult(String methodName, float [] operands, float result){
 		given().
-			pathParam("a",operandA).
-			pathParam("b",operandB).
-			pathParam("c",operandC).
+			pathParam("a",operands[0]).
+			pathParam("b",operands[1]).
+			pathParam("c",operands[2]).
 			contentType(JSON).
+		log().ifValidationFails().
 		when().
 			get("/"+methodName+"/{a}/{b}/{c}").
 		then().
 			assertThat().statusCode(200).
 			body("result",Matchers.equalTo(result));
+	}
+
+	private float[] getRandomOperands(){
+		float a = (float) ThreadLocalRandom.current().nextDouble(-100, 100);
+		float b = (float) ThreadLocalRandom.current().nextDouble(-100, 100);
+		float c = (float) ThreadLocalRandom.current().nextDouble(-100, 100);
+		return new float[] {a,b,c};
 	}
 
 }
