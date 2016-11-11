@@ -1,5 +1,6 @@
 package com.upwork.web;
 
+import com.upwork.dto.Result;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -7,8 +8,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class CalcController {
 
-    @RequestMapping(value = "/add/{a}/{b}/{c}")
-    public Integer add(@PathVariable("a") Integer operandA, @PathVariable("b") Integer operandB, @PathVariable("c") Integer operandC){
-        return operandA+operandB+operandC;
+    @RequestMapping(value = "/add/{a}/{b}/{c:.+}")
+    public Result add(@PathVariable("a") double operandA, @PathVariable("b") double operandB, @PathVariable("c") double operandC){
+        return new Result(operandA+operandB+operandC);
     }
 }
