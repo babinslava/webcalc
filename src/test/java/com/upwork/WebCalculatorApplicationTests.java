@@ -93,6 +93,44 @@ public class WebCalculatorApplicationTests {
 	}
 
 	@Test
+	public void divideMethodOnZeroShouldReturnInfinity() {
+		float operand = (float) ThreadLocalRandom.current().nextDouble(0.1, 100);
+		testDivideResult(new float[] {operand,0f});
+	}
+
+	@Test
+	public void divideMethodOnZeroShouldReturnNegativeInfinity1() {
+		float operand = (float) ThreadLocalRandom.current().nextDouble(-100, -0.1);
+		testDivideResult(new float[] {operand,0f});
+	}
+
+	@Test
+	public void divideMethodOnZeroShouldReturnNegativeInfinity2() {
+		float operand = (float) ThreadLocalRandom.current().nextDouble(0.1, 100);
+		testDivideResult(new float[] {operand,-0f});
+	}
+
+	@Test
+	public void divideMethodZeroOnZeroShouldReturnNaN() {
+		testDivideResult(new float[] {0f,0f});
+	}
+
+	public void testDivideResult(float [] operands) {
+		String methodName="divide";
+		float result = operands[0]/operands[1];
+		given().
+			pathParam("a",operands[0]).
+			pathParam("b",operands[1]).
+			contentType(JSON).
+			log().ifValidationFails().
+		when().
+			get("/"+methodName+"/{a}/{b}").
+		then().
+			assertThat().statusCode(200).
+			body("result",Matchers.equalTo(Float.toString(result)));
+	}
+
+	@Test
 	public void addMethodShouldUseCache() {
 		String methodName="add";
 		float [] operands = getRandomOperands();
