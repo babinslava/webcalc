@@ -73,6 +73,26 @@ public class WebCalculatorApplicationTests {
 	}
 
 	@Test
+	public void divideMethodShouldDivideValues() {
+		String methodName="divide";
+		for (int i = 0; i < 20; i++) {
+			float [] operands = getRandomOperands();
+			if(operands[1]==0) continue;
+			float result = operands[0]/operands[1];
+			given().
+				pathParam("a",operands[0]).
+				pathParam("b",operands[1]).
+				contentType(JSON).
+				log().ifValidationFails().
+			when().
+				get("/"+methodName+"/{a}/{b}").
+			then().
+				assertThat().statusCode(200).
+				body("result",Matchers.equalTo(result));
+		}
+	}
+
+	@Test
 	public void addMethodShouldUseCache() {
 		String methodName="add";
 		float [] operands = getRandomOperands();
@@ -97,6 +117,26 @@ public class WebCalculatorApplicationTests {
 		float result = operands[0]*operands[1]*operands[2];
 		callCalcMethod(methodName,operands);
 		checkResultInCache(new SimpleKey(methodName,operands[0],operands[1],operands[2]),result);
+	}
+
+	@Test
+	public void divideMethodShouldUseCache() {
+		String methodName="divide";
+		for (int i = 0; i < 3; i++) {
+			float [] operands = getRandomOperands();
+			if(operands[1]==0) continue;
+			float result = operands[0]/operands[1];
+			given().
+					pathParam("a",operands[0]).
+					pathParam("b",operands[1]).
+					contentType(JSON).
+					log().ifValidationFails().
+					when().
+					get("/"+methodName+"/{a}/{b}").
+					then().
+					assertThat().statusCode(200);
+			checkResultInCache(new SimpleKey(operands[0],operands[1]),result);
+		}
 	}
 
 	@Test

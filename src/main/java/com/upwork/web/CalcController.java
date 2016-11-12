@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+
 @RestController
 public class CalcController {
 
@@ -29,5 +31,13 @@ public class CalcController {
     @RequestMapping(value = "/multiply/{a}/{b}/{c:.+}")
     public Result multiply(@PathVariable("a") float operandA, @PathVariable("b") float operandB, @PathVariable("c") float operandC){
         return new Result(operandA*operandB*operandC);
+    }
+
+    @Cacheable(value="calc")
+    @RequestMapping(value = "/divide/{a}/{b:.+}")
+    public Result divide(@PathVariable("a") float operandA, @PathVariable("b") float operandB){
+        if (operandB==0)
+            throw new RuntimeException();
+        return new Result(operandA/operandB);
     }
 }
