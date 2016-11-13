@@ -5,7 +5,6 @@ import com.jayway.restassured.response.Response;
 import com.upwork.dto.Result;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,12 +16,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.interceptor.SimpleKey;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.concurrent.ThreadLocalRandom;
 
 import static com.jayway.restassured.RestAssured.given;
 import static com.jayway.restassured.http.ContentType.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
 @RunWith(SpringRunner.class)
@@ -89,7 +90,7 @@ public class WebCalculatorApplicationTests {
 			if(operands[1]==0) operands[1]+=0.1f;
 			float result = operands[0]/operands[1];
 			Response response = callDivideMethod(methodName,operands);
-			response.then().body("result",Matchers.equalTo(result));
+			response.then().body("result",equalTo(result));
 		}
 	}
 
@@ -114,13 +115,6 @@ public class WebCalculatorApplicationTests {
 	@Test
 	public void divideMethodZeroOnZeroShouldReturnNaN() {
 		testDivideResult(new float[] {0f,0f});
-	}
-
-	public void testDivideResult(float [] operands) {
-		String methodName="divide";
-		float result = operands[0]/operands[1];
-		Response response = callDivideMethod(methodName,operands);
-		response.then().body("result",Matchers.equalTo(Float.toString(result)));
 	}
 
 	@Test
@@ -174,12 +168,49 @@ public class WebCalculatorApplicationTests {
 		callCalcMethodAndCheckResult(methodName, operands, result);
 	}
 
+	@Test
+	public void divideMethodShouldGiveErrorWhenInvalidArguments() {
+		Object [] operands = {2f,"sdfg"};
+		String methodName = "divide";
+		given().
+				pathParam("a",operands[0]).
+				pathParam("b",operands[1]).
+				contentType(JSON).
+				log().ifValidationFails().
+			when().
+				get("/"+methodName+"/{a}/{b}").
+			then().
+				assertThat().statusCode(400).
+				body("exception",equalTo(MethodArgumentTypeMismatchException.class.getName()));
+	}
+
+	@Test
+	public void shouldGiveErrorWhenInvalidArguments() {
+		Object [] operands = {2f,"sdfg",-1.6f};
+		callCalcMethodWithInvalidArgumentAndCheckResult("add",operands);
+		callCalcMethodWithInvalidArgumentAndCheckResult("subtract",operands);
+		callCalcMethodWithInvalidArgumentAndCheckResult("multiply",operands);
+	}
+
+	public void callCalcMethodWithInvalidArgumentAndCheckResult(String methodName, Object [] operands) {
+		given().
+				pathParam("a",operands[0]).
+				pathParam("b",operands[1]).
+				pathParam("c",operands[2]).
+				contentType(JSON).
+				log().ifValidationFails().
+			when().
+				get("/"+methodName+"/{a}/{b}/{c}").
+			then().
+				assertThat().statusCode(400).
+				body("exception",equalTo(MethodArgumentTypeMismatchException.class.getName()));
+	}
 
 	private void checkResultInCache(SimpleKey cacheKey, float result){
 		Ehcache cache = (Ehcache) cacheManager.getCache("calc").getNativeCache();
 		final Element cachedResult = cache.getQuiet(cacheKey);
 		assertThat("Should find element in cache",cachedResult,notNullValue());
-		assertThat("Should be the right result",((Result) cachedResult.getObjectValue()).getResult(),Matchers.equalTo(result));
+		assertThat("Should be the right result",((Result) cachedResult.getObjectValue()).getResult(),equalTo(result));
 	}
 
 	private Response callCalcMethod(String methodName, float [] operands){
@@ -195,6 +226,13 @@ public class WebCalculatorApplicationTests {
 			extract().
 				response();
 		return response;
+	}
+
+	public void testDivideResult(float [] operands) {
+		String methodName="divide";
+		float result = operands[0]/operands[1];
+		Response response = callDivideMethod(methodName,operands);
+		response.then().body("result",equalTo(Float.toString(result)));
 	}
 
 	private Response callDivideMethod(String methodName, float [] operands){
@@ -216,7 +254,7 @@ public class WebCalculatorApplicationTests {
 		Response response =callCalcMethod(methodName, operands);
 		//restassured's json path convert string '-0' to float 0f
 		if (result == -0f) result=0f;
-		response.then().body("result",Matchers.equalTo(result));
+		response.then().body("result",equalTo(result));
 	}
 
 	private float[] getRandomOperands(){
