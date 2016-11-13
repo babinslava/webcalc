@@ -1,6 +1,7 @@
 package com.upwork;
 
 import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.response.Response;
 import com.upwork.dto.Result;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
@@ -73,22 +74,22 @@ public class WebCalculatorApplicationTests {
 	}
 
 	@Test
+	public void multiplyMethodTestMinusZeroResult() {
+		String methodName="multiply";
+		float[] operands = {1f,-2.5f,0};
+		float result = operands[0] * operands[1] * operands[2];
+		callCalcMethodAndCheckResult(methodName, operands, result);
+	}
+
+	@Test
 	public void divideMethodShouldDivideValues() {
 		String methodName="divide";
 		for (int i = 0; i < 20; i++) {
 			float [] operands = getRandomOperands();
-			if(operands[1]==0) continue;
+			if(operands[1]==0) operands[1]+=0.1f;
 			float result = operands[0]/operands[1];
-			given().
-				pathParam("a",operands[0]).
-				pathParam("b",operands[1]).
-				contentType(JSON).
-				log().ifValidationFails().
-			when().
-				get("/"+methodName+"/{a}/{b}").
-			then().
-				assertThat().statusCode(200).
-				body("result",Matchers.equalTo(result));
+			Response response = callDivideMethod(methodName,operands);
+			response.then().body("result",Matchers.equalTo(result));
 		}
 	}
 
@@ -118,16 +119,8 @@ public class WebCalculatorApplicationTests {
 	public void testDivideResult(float [] operands) {
 		String methodName="divide";
 		float result = operands[0]/operands[1];
-		given().
-			pathParam("a",operands[0]).
-			pathParam("b",operands[1]).
-			contentType(JSON).
-			log().ifValidationFails().
-		when().
-			get("/"+methodName+"/{a}/{b}").
-		then().
-			assertThat().statusCode(200).
-			body("result",Matchers.equalTo(Float.toString(result)));
+		Response response = callDivideMethod(methodName,operands);
+		response.then().body("result",Matchers.equalTo(Float.toString(result)));
 	}
 
 	@Test
@@ -160,21 +153,11 @@ public class WebCalculatorApplicationTests {
 	@Test
 	public void divideMethodShouldUseCache() {
 		String methodName="divide";
-		for (int i = 0; i < 3; i++) {
-			float [] operands = getRandomOperands();
-			if(operands[1]==0) continue;
-			float result = operands[0]/operands[1];
-			given().
-					pathParam("a",operands[0]).
-					pathParam("b",operands[1]).
-					contentType(JSON).
-					log().ifValidationFails().
-					when().
-					get("/"+methodName+"/{a}/{b}").
-					then().
-					assertThat().statusCode(200);
-			checkResultInCache(new SimpleKey(operands[0],operands[1]),result);
-		}
+		float [] operands = getRandomOperands();
+		if(operands[1]==0) operands[1]+=0.1f;
+		float result = operands[0]/operands[1];
+		callDivideMethod(methodName,operands);
+		checkResultInCache(new SimpleKey(operands[0],operands[1]),result);
 	}
 
 	@Test
@@ -199,30 +182,41 @@ public class WebCalculatorApplicationTests {
 		assertThat("Should be the right result",((Result) cachedResult.getObjectValue()).getResult(),Matchers.equalTo(result));
 	}
 
-	private void callCalcMethod(String methodName, float [] operands){
-		given().
-			pathParam("a",operands[0]).
-			pathParam("b",operands[1]).
-			pathParam("c",operands[2]).
-			contentType(JSON).
-		when().
-			get("/"+methodName+"/{a}/{b}/{c}").
-		then().
-			assertThat().statusCode(200);
+	private Response callCalcMethod(String methodName, float [] operands){
+		Response response = given().
+				pathParam("a",operands[0]).
+				pathParam("b",operands[1]).
+				pathParam("c",operands[2]).
+				contentType(JSON).
+			when().
+				get("/"+methodName+"/{a}/{b}/{c}").
+			then().
+				assertThat().statusCode(200).
+			extract().
+				response();
+		return response;
+	}
+
+	private Response callDivideMethod(String methodName, float [] operands){
+		Response response = given().
+				pathParam("a",operands[0]).
+				pathParam("b",operands[1]).
+				contentType(JSON).
+				log().ifValidationFails().
+			when().
+				get("/"+methodName+"/{a}/{b}").
+			then().
+				assertThat().statusCode(200).
+			extract().
+				response();
+		return response;
 	}
 
 	private void callCalcMethodAndCheckResult(String methodName, float [] operands, float result){
-		given().
-			pathParam("a",operands[0]).
-			pathParam("b",operands[1]).
-			pathParam("c",operands[2]).
-			contentType(JSON).
-		log().ifValidationFails().
-		when().
-			get("/"+methodName+"/{a}/{b}/{c}").
-		then().
-			assertThat().statusCode(200).
-			body("result",Matchers.equalTo(result));
+		Response response =callCalcMethod(methodName, operands);
+		//restassured's json path convert string '-0' to float 0f
+		if (result == -0f) result=0f;
+		response.then().body("result",Matchers.equalTo(result));
 	}
 
 	private float[] getRandomOperands(){
