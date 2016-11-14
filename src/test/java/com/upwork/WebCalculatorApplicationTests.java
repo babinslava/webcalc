@@ -1,7 +1,7 @@
 package com.upwork;
 
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Response;
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import com.upwork.dto.Result;
 import net.sf.ehcache.Ehcache;
 import net.sf.ehcache.Element;
@@ -20,8 +20,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.util.concurrent.ThreadLocalRandom;
 
-import static com.jayway.restassured.RestAssured.given;
-import static com.jayway.restassured.http.ContentType.JSON;
+import static io.restassured.RestAssured.given;
+import static io.restassured.http.ContentType.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -37,7 +37,7 @@ public class WebCalculatorApplicationTests {
 	CacheManager cacheManager;
 
 	@LocalServerPort
-	int port;
+	private int port;
 
 	@Before
 	public void init() {
@@ -219,6 +219,7 @@ public class WebCalculatorApplicationTests {
 				pathParam("b",operands[1]).
 				pathParam("c",operands[2]).
 				contentType(JSON).
+				log().ifValidationFails().
 			when().
 				get("/"+methodName+"/{a}/{b}/{c}").
 			then().
@@ -252,7 +253,7 @@ public class WebCalculatorApplicationTests {
 
 	private void callCalcMethodAndCheckResult(String methodName, float [] operands, float result){
 		Response response =callCalcMethod(methodName, operands);
-		//restassured's json path convert string '-0' to float 0f
+		//rest assured's json path convert string '-0' to float 0f
 		if (result == -0f) result=0f;
 		response.then().body("result",equalTo(result));
 	}
