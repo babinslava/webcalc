@@ -18,27 +18,27 @@ public class CalcController {
     @Cacheable(value="calc",
             key="new org.springframework.cache.interceptor.SimpleKey( #root.methodName, #operandA, #operandB, #operandC  )")
     @RequestMapping(value = "/add/{a}/{b}/{c:.+}")
-    public Result add(@PathVariable("a") float operandA, @PathVariable("b") float operandB, @PathVariable("c") float operandC){
+    public Result add(@PathVariable("a") double operandA, @PathVariable("b") double operandB, @PathVariable("c") double operandC){
         return new Result(operandA+operandB+operandC);
     }
 
     @Cacheable(value="calc",
             key="new org.springframework.cache.interceptor.SimpleKey( #root.methodName, #operandA, #operandB, #operandC  )")
     @RequestMapping(value = "/subtract/{a}/{b}/{c:.+}")
-    public Result subtract(@PathVariable("a") float operandA, @PathVariable("b") float operandB, @PathVariable("c") float operandC){
+    public Result subtract(@PathVariable("a") double operandA, @PathVariable("b") double operandB, @PathVariable("c") double operandC){
         return new Result(operandA-operandB-operandC);
     }
 
     @Cacheable(value="calc",
             key="new org.springframework.cache.interceptor.SimpleKey( #root.methodName, #operandA, #operandB, #operandC  )")
     @RequestMapping(value = "/multiply/{a}/{b}/{c:.+}")
-    public Result multiply(@PathVariable("a") float operandA, @PathVariable("b") float operandB, @PathVariable("c") float operandC){
+    public Result multiply(@PathVariable("a") double operandA, @PathVariable("b") double operandB, @PathVariable("c") double operandC){
         return new Result(operandA*operandB*operandC);
     }
 
     @Cacheable(value="calc")
     @RequestMapping(value = "/divide/{a}/{b:.+}")
-    public Result divide(@PathVariable("a") float operandA, @PathVariable("b") float operandB){
+    public Result divide(@PathVariable("a") double operandA, @PathVariable("b") double operandB){
         return new Result(operandA/operandB);
     }
 }
