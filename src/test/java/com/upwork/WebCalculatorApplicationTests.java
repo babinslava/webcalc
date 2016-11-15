@@ -18,13 +18,15 @@ import org.springframework.cache.interceptor.SimpleKey;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.math.BigDecimal;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static io.restassured.RestAssured.given;
+import static io.restassured.config.JsonConfig.jsonConfig;
 import static io.restassured.http.ContentType.JSON;
+import static io.restassured.path.json.config.JsonPathConfig.NumberReturnType.BIG_DECIMAL;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment= SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -49,7 +51,7 @@ public class WebCalculatorApplicationTests {
 		String methodName="add";
 		for (int i = 0; i < 20; i++) {
 			double [] operands = getRandomOperands();
-			float result = (float) (operands[0]+operands[1]+operands[2]);
+			double result = (operands[0]+operands[1]+operands[2]);
 			callCalcMethodAndCheckResult(methodName,operands,result);
 		}
 	}
@@ -59,7 +61,7 @@ public class WebCalculatorApplicationTests {
 		String methodName="subtract";
 		for (int i = 0; i < 20; i++) {
 			double[] operands = getRandomOperands();
-			float result = (float) (operands[0] - operands[1] - operands[2]);
+			double result = (operands[0] - operands[1] - operands[2]);
 			callCalcMethodAndCheckResult(methodName, operands, result);
 		}
 	}
@@ -69,7 +71,7 @@ public class WebCalculatorApplicationTests {
 		String methodName="multiply";
 		for (int i = 0; i < 20; i++) {
 			double [] operands = getRandomOperands();
-			float result = (float) (operands[0] * operands[1] * operands[2]);
+			double result = (operands[0] * operands[1] * operands[2]);
 			callCalcMethodAndCheckResult(methodName, operands, result);
 		}
 	}
@@ -77,8 +79,8 @@ public class WebCalculatorApplicationTests {
 	@Test
 	public void multiplyMethodTestMinusZeroResult() {
 		String methodName="multiply";
-		double [] operands = {1f,-2.5f,0};
-		float result = (float) (operands[0] * operands[1] * operands[2]);
+		double [] operands = {1,-2.5,0};
+		double result = (operands[0] * operands[1] * operands[2]);
 		callCalcMethodAndCheckResult(methodName, operands, result);
 	}
 
@@ -87,29 +89,29 @@ public class WebCalculatorApplicationTests {
 		String methodName="divide";
 		for (int i = 0; i < 20; i++) {
 			double [] operands = getRandomOperands();
-			if(operands[1]==0) operands[1]+=0.1f;
-			float result = (float) (operands[0]/operands[1]);
+			if(operands[1]==0) operands[1]+=0.1;
+			double result = operands[0]/operands[1];
 			Response response = callDivideMethod(methodName,operands);
-			response.then().body("result",equalTo(result));
+			response.then().body("result",closeTo(BigDecimal.valueOf(result),new BigDecimal("1E-20")));
 		}
 	}
 
 	@Test
 	public void divideMethodOnZeroShouldReturnInfinity() {
-		float operand = (float) ThreadLocalRandom.current().nextDouble(0.1, 100);
-		testDivideResult(new double [] {operand,0f});
+		double operand =  ThreadLocalRandom.current().nextDouble(0.1, 100);
+		testDivideResult(new double [] {operand,0});
 	}
 
 	@Test
 	public void divideMethodOnZeroShouldReturnNegativeInfinity1() {
-		float operand = (float) ThreadLocalRandom.current().nextDouble(-100, -0.1);
-		testDivideResult(new double [] {operand,0f});
+		double operand = ThreadLocalRandom.current().nextDouble(-100, -0.1);
+		testDivideResult(new double [] {operand,0});
 	}
 
 	@Test
 	public void divideMethodOnZeroShouldReturnNegativeInfinity2() {
-		float operand = (float) ThreadLocalRandom.current().nextDouble(0.1, 100);
-		testDivideResult(new double [] {operand,-0f});
+		double operand = ThreadLocalRandom.current().nextDouble(0.1, 100);
+		testDivideResult(new double [] {operand,-0});
 	}
 
 	@Test
@@ -158,19 +160,19 @@ public class WebCalculatorApplicationTests {
 	public void shouldUseDifferentCacheKeysOnSameParams() {
 		double [] operands = {2,0.4,-1.6};
 		String methodName="add";
-		float result = (float) (operands[0]+operands[1]+operands[2]);
+		double result = operands[0]+operands[1]+operands[2];
 		callCalcMethodAndCheckResult(methodName,operands,result);
 		methodName="subtract";
-		result = (float) (operands[0]-operands[1]-operands[2]);
+		result = operands[0]-operands[1]-operands[2];
 		callCalcMethodAndCheckResult(methodName,operands,result);
 		methodName="multiply";
-		result = (float) (operands[0] * operands[1] * operands[2]);
+		result = operands[0] * operands[1] * operands[2];
 		callCalcMethodAndCheckResult(methodName, operands, result);
 	}
 
 	@Test
 	public void divideMethodShouldGiveErrorWhenInvalidArguments() {
-		Object [] operands = {2f,"sdfg"};
+		Object [] operands = {2,"sdfg"};
 		String methodName = "divide";
 		given().
 				pathParam("a",operands[0]).
@@ -180,13 +182,14 @@ public class WebCalculatorApplicationTests {
 			when().
 				get("/"+methodName+"/{a}/{b}").
 			then().
+				log().ifValidationFails().
 				assertThat().statusCode(400).
 				body("exception",equalTo(MethodArgumentTypeMismatchException.class.getName()));
 	}
 
 	@Test
 	public void shouldGiveErrorWhenInvalidArguments() {
-		Object [] operands = {2f,"sdfg",-1.6f};
+		Object [] operands = {2,"sdfg",-1.6};
 		callCalcMethodWithInvalidArgumentAndCheckResult("add",operands);
 		callCalcMethodWithInvalidArgumentAndCheckResult("subtract",operands);
 		callCalcMethodWithInvalidArgumentAndCheckResult("multiply",operands);
@@ -202,6 +205,7 @@ public class WebCalculatorApplicationTests {
 			when().
 				get("/"+methodName+"/{a}/{b}/{c}").
 			then().
+				log().ifValidationFails().
 				assertThat().statusCode(400).
 				body("exception",equalTo(MethodArgumentTypeMismatchException.class.getName()));
 	}
@@ -215,6 +219,7 @@ public class WebCalculatorApplicationTests {
 
 	private Response callCalcMethod(String methodName, double [] operands){
 		Response response = given().
+				config(RestAssured.config().jsonConfig(jsonConfig().numberReturnType(BIG_DECIMAL))).
 				pathParam("a",operands[0]).
 				pathParam("b",operands[1]).
 				pathParam("c",operands[2]).
@@ -232,13 +237,15 @@ public class WebCalculatorApplicationTests {
 
 	public void testDivideResult(double [] operands) {
 		String methodName="divide";
-		float result = (float) (operands[0]/operands[1]);
+		double result = operands[0]/operands[1];
 		Response response = callDivideMethod(methodName,operands);
-		response.then().body("result",equalTo(Float.toString(result)));
+		response.then().body("result",equalTo(Double.toString(result)));
+		logger.info(Double.toString(result));
 	}
 
 	private Response callDivideMethod(String methodName, double [] operands){
 		Response response = given().
+				config(RestAssured.config().jsonConfig(jsonConfig().numberReturnType(BIG_DECIMAL))).
 				pathParam("a",operands[0]).
 				pathParam("b",operands[1]).
 				contentType(JSON).
@@ -246,17 +253,16 @@ public class WebCalculatorApplicationTests {
 			when().
 				get("/"+methodName+"/{a}/{b}").
 			then().
+				log().ifValidationFails().
 				assertThat().statusCode(200).
 			extract().
 				response();
 		return response;
 	}
 
-	private void callCalcMethodAndCheckResult(String methodName, double [] operands, float result){
+	private void callCalcMethodAndCheckResult(String methodName, double [] operands, double result){
 		Response response =callCalcMethod(methodName, operands);
-		//rest assured's json path convert string '-0' to float 0f
-		if (result == -0f) result=0f;
-		response.then().body("result",equalTo(result));
+		response.then().body("result",closeTo(BigDecimal.valueOf(result),new BigDecimal("1E-20")));
 	}
 
 	private double[] getRandomOperands(){
